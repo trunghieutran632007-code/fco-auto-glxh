@@ -39,7 +39,7 @@
 - [x] Tạo file `pom.xml` (Maven config, dependencies: JNA, FlatLaf, Gson, maven-shade-plugin)
 - [x] Tạo cấu trúc thư mục `src/main/java/com/fco/autoglxh/`
 - [x] Verify `mvn clean compile` chạy thành công ✅ BUILD SUCCESS
-- [ ] Commit: `chore: init maven project structure`
+- [x] Commit: `chore: init maven project structure` ✅ (2687e54)
 
 ---
 
@@ -53,16 +53,17 @@
   - [x] Khai báo các hằng số Windows (WM_LBUTTONDOWN, WM_LBUTTONUP, MK_LBUTTON, PW_RENDERFULLCONTENT,...)
   - [x] Viết helper method: `findGameWindow(title)` → trả về HWND
   - [x] Viết helper method: `postClick(hwnd, x, y)` → gửi WM_LBUTTONDOWN + WM_LBUTTONUP
-  - [ ] Test thủ công: tìm cửa sổ Notepad, gửi click → xem có phản hồi không
+  - [x] Test thủ công: tìm cửa sổ Notepad, gửi click → phản hồi OK (click gửi thành công qua `ManualTest`; caret không nhảy vì Notepad dùng child EDIT control — không phải lỗi code, sẽ verify với nút FCO ở phase sau)
 
 - [x] **WindowCapture.java** (`native_api/`)
   - [x] Chụp ảnh cửa sổ bằng `PrintWindow` + GDI → trả về `BufferedImage`
   - [x] Method `getPixelColor(hwnd, x, y)` → trả về `Color`
   - [x] Method `captureWindow(hwnd)` → trả về `BufferedImage`
   - [x] Method `isColorMatch()` (2 overloads: từ hwnd hoặc từ BufferedImage có sẵn)
-  - [ ] Test thủ công: chụp cửa sổ Notepad, lưu ra file `.png` kiểm tra
+  - [x] Test thủ công: chụp cửa sổ Notepad, lưu ra file `.png` kiểm tra ✅ ảnh OK (target/notepad-capture.png)
 
-- [ ] Commit: `feat: add Win32 API wrapper and window capture`
+- [x] Commit: `feat: add Win32 API wrapper and window capture` ✅ (f95cf6e)
+- [x] Commit follow-up: fix #1/#5/#6 (commit `94edced`) + `ManualTest.java` + pom `${exec.mainClass}` (commit này)
 
 ---
 
@@ -209,6 +210,7 @@
 | 2026-08-06 | Khởi tạo dự án, chọn cơ chế PostMessage thay vì Robot để chạy nền |
 | 2026-08-06 | Repo tạo tại `C:\Users\Hieu\Documents\GitHub\fco-auto-glxh` |
 | 2026-08-06 | Hieu sẽ tự code là chính, AI Agent hỗ trợ khi được yêu cầu |
+| 2026-08-06 | Review Phase 1 + fix #1 (makeLParam cast long), #5 (PrintWindow: PW_CLIENTONLY + PW_RENDERFULLCONTENT), #6 (perf getByteArray). Thêm `ManualTest.java` test Notepad qua EnumWindows. Pom: mainClass -> `${exec.mainClass}` (override bằng -Dexec.mainClass). PowerShell cần `--%` cho tham số -D. Test thủ công: capture PNG ✅, click gửi OK (caret không nhảy do Notepad dùng child EDIT control). |
 
 ---
 

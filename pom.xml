@@ -17,6 +17,9 @@
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
+        <!-- Main class mặc định cho exec:java (override bằng -Dexec.mainClass=...) -->
+        <exec.mainClass>com.fco.autoglxh.App</exec.mainClass>
+
         <!-- Dependency versions -->
         <jna.version>5.16.0</jna.version>
         <flatlaf.version>3.5.4</flatlaf.version>
@@ -95,7 +98,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.5.0</version>
                 <configuration>
-                    <mainClass>com.fco.autoglxh.App</mainClass>
+                    <mainClass>${exec.mainClass}</mainClass>
                 </configuration>
             </plugin>
         </plugins>
