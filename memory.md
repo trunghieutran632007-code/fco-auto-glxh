@@ -47,18 +47,19 @@
 
 > Tầng nền tảng – gọi Windows API qua JNA. Các tầng trên sẽ phụ thuộc vào đây.
 
-- [ ] **Win32Api.java** (`native_api/`)
-  - [ ] Khai báo JNA interface cho `User32` (FindWindow, PostMessage, GetClientRect, IsWindow, RegisterHotKey, UnregisterHotKey)
-  - [ ] Khai báo JNA interface cho `GDI32` (CreateCompatibleDC, CreateCompatibleBitmap, SelectObject, BitBlt, DeleteDC, DeleteObject)
-  - [ ] Khai báo các hằng số Windows (WM_LBUTTONDOWN, WM_LBUTTONUP, MK_LBUTTON, SRCCOPY,...)
-  - [ ] Viết helper method: `findGameWindow(title)` → trả về HWND
-  - [ ] Viết helper method: `postClick(hwnd, x, y)` → gửi WM_LBUTTONDOWN + WM_LBUTTONUP
+- [x] **Win32Api.java** (`native_api/`)
+  - [x] Khai báo JNA interface cho `User32` (FindWindow, PostMessage, GetClientRect, IsWindow, RegisterHotKey, UnregisterHotKey)
+  - [x] Khai báo JNA interface mở rộng `User32Ex` cho `PrintWindow`
+  - [x] Khai báo các hằng số Windows (WM_LBUTTONDOWN, WM_LBUTTONUP, MK_LBUTTON, PW_RENDERFULLCONTENT,...)
+  - [x] Viết helper method: `findGameWindow(title)` → trả về HWND
+  - [x] Viết helper method: `postClick(hwnd, x, y)` → gửi WM_LBUTTONDOWN + WM_LBUTTONUP
   - [ ] Test thủ công: tìm cửa sổ Notepad, gửi click → xem có phản hồi không
 
-- [ ] **WindowCapture.java** (`native_api/`)
-  - [ ] Chụp ảnh cửa sổ bằng `PrintWindow` + GDI → trả về `BufferedImage`
-  - [ ] Method `getPixelColor(hwnd, x, y)` → trả về `Color`
-  - [ ] Method `captureWindow(hwnd)` → trả về `BufferedImage`
+- [x] **WindowCapture.java** (`native_api/`)
+  - [x] Chụp ảnh cửa sổ bằng `PrintWindow` + GDI → trả về `BufferedImage`
+  - [x] Method `getPixelColor(hwnd, x, y)` → trả về `Color`
+  - [x] Method `captureWindow(hwnd)` → trả về `BufferedImage`
+  - [x] Method `isColorMatch()` (2 overloads: từ hwnd hoặc từ BufferedImage có sẵn)
   - [ ] Test thủ công: chụp cửa sổ Notepad, lưu ra file `.png` kiểm tra
 
 - [ ] Commit: `feat: add Win32 API wrapper and window capture`
