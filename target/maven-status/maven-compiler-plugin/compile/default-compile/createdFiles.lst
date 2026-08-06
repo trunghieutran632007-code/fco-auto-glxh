@@ -1,4 +1,7 @@
-com\fco\autoglxh\native_api\Win32Api$User32Ex.class
-com\fco\autoglxh\native_api\WindowCapture.class
+com\fco\autoglxh\ManualTest$1.class
 com\fco\autoglxh\App.class
 com\fco\autoglxh\native_api\Win32Api.class
+com\fco\autoglxh\native_api\Win32Api$User32Ex.class
+com\fco\autoglxh\native_api\WindowCapture.class
+com\fco\autoglxh\ManualTest$WinInfo.class
+com\fco\autoglxh\ManualTest.class

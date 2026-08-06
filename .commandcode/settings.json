@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Shell(mvn:*)",
-      "Shell(findstr:*)"
+      "Shell(findstr:*)",
+      "Shell(git -C \"C:/Users/Hieu/Documents/GitHub/fco-auto-glxh\" status --short && echo \"---GITIGNORE---\" && cat .gitignore 2>nul)",
+      "Shell(git:*)"
     ],
     "deny": [],
     "defaultMode": "default"
