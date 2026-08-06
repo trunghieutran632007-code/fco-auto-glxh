@@ -55,15 +55,16 @@ public class WindowCapture {
 
         try {
             // === Chụp nội dung cửa sổ vào bitmap ===
-            // PW_RENDERFULLCONTENT (2) = render đầy đủ nội dung, kể cả khi bị che
-            // Nếu không hoạt động (Windows 7), fallback về PW_CLIENTONLY (1)
-            boolean success = Win32Api.User32Ex.INSTANCE.PrintWindow(
-                    hwnd, hdcMem, Win32Api.PW_RENDERFULLCONTENT
-            );
+            // PW_CLIENTONLY | PW_RENDERFULLCONTENT (1|2 = 3) = chỉ chụp client area
+            // + render đầy đủ nội dung kể cả khi bị che. Đảm bảo pixel (x,y) trong ảnh
+            // khớp với tọa độ client (x,y) mà PostMessage dùng để click.
+            // Fallback PW_CLIENTONLY (1) cho Windows cũ không hỗ trợ flag 2.
+            int flags = Win32Api.PW_CLIENTONLY | Win32Api.PW_RENDERFULLCONTENT;
+            boolean success = Win32Api.User32Ex.INSTANCE.PrintWindow(hwnd, hdcMem, flags);
 
             if (!success) {
-                // Fallback: thử với flag 0 (mặc định)
-                success = Win32Api.User32Ex.INSTANCE.PrintWindow(hwnd, hdcMem, 0);
+                success = Win32Api.User32Ex.INSTANCE.PrintWindow(
+                        hwnd, hdcMem, Win32Api.PW_CLIENTONLY);
             }
 
             if (!success) {
@@ -187,15 +188,19 @@ public class WindowCapture {
             return null;
         }
 
+        // Đọc toàn bộ pixel data ra byte array một lần (tránh per-byte call qua JNA,
+        // giúp tăng tốc đáng kể với ảnh lớn)
+        byte[] data = buffer.getByteArray(0, width * height * 4);
+
         // Chuyển đổi pixel data (BGRA) thành BufferedImage (ARGB)
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         int[] pixels = new int[width * height];
 
         for (int i = 0; i < pixels.length; i++) {
             int offset = i * 4;
-            int b = buffer.getByte(offset) & 0xFF;
-            int g = buffer.getByte(offset + 1) & 0xFF;
-            int r = buffer.getByte(offset + 2) & 0xFF;
+            int b = data[offset] & 0xFF;
+            int g = data[offset + 1] & 0xFF;
+            int r = data[offset + 2] & 0xFF;
             int a = 255; // Mặc định alpha = 255 (không trong suốt)
             pixels[i] = (a << 24) | (r << 16) | (g << 8) | b;
         }

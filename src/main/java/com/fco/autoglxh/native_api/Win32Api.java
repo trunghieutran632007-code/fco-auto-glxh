@@ -188,7 +188,7 @@ public class Win32Api {
      * Đây là cách Windows đóng gói tọa độ chuột vào LPARAM.
      */
     public static LPARAM makeLParam(int x, int y) {
-        return new LPARAM((long) (y << 16) | (x & 0xFFFF));
+        return new LPARAM(((long) y << 16) | (x & 0xFFFF));
     }
 
     /**
