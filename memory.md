@@ -124,15 +124,19 @@
 
 > Phím tắt toàn hệ thống – hoạt động ngay cả khi game đang active.
 
-- [ ] **GlobalHotkeyService.java** (`service/`)
-  - [ ] Đăng ký F9 = Start/Pause toggle
-  - [ ] Đăng ký F10 = Stop
-  - [ ] Chạy message loop trên thread riêng (`GetMessage` / `PeekMessage`)
-  - [ ] Callback khi nhận `WM_HOTKEY`
-  - [ ] Cleanup: `UnregisterHotKey` khi app tắt
-  - [ ] Test thủ công: nhấn F9/F10 khi đang ở cửa sổ khác → xem log có ghi nhận không
+- [x] **GlobalHotkeyService.java** (`service/`) + `HotkeyListener.java`
+  - [x] Đăng ký F9 = Start/Pause toggle (`HOTKEY_ID_START_PAUSE`, `VK_F9`, modifiers=0)
+  - [x] Đăng ký F10 = Stop (`HOTKEY_ID_STOP`, `VK_F10`)
+  - [x] Chạy message loop trên thread riêng — dùng **PeekMessage polling** (PM_REMOVE, 10ms) thay vì GetMessage blocking (shutdown race-free, không cần PostThreadMessage/thread-id)
+  - [x] Callback khi nhận `WM_HOTKEY` — `HotkeyListener.onHotkeyPressed(int id)`, gọi trên worker thread (UI Phase 6 tự `invokeLater`)
+  - [x] Cleanup: `UnregisterHotKey` trong `finally` của worker (BẮT BUỘC cùng thread đã register); `stop()` interrupt + `join(500)` chờ unregister xong
+  - [x] Test thủ công: nhấn F9/F10 khi đang ở cửa sổ khác → xem log (xem phần verify)
+  - [x] Không cần sửa `Win32Api.java` — JNA `User32` đã có sẵn `PeekMessage`/`GetMessage`/`PostThreadMessage` + `WinUser.MSG`; `Win32Api` đã có sẵn `registerHotKey`/`unregisterHotKey` + constants từ Phase 1
 
-- [ ] Commit: `feat: add global hotkey support (F9/F10)`
+- [x] Verify: `mvn clean compile` ✅ + smoke test jshell (F9/F10 registered=true, worker chạy loop OK, stop sạch + unregister OK + flags reset) ✅
+- [x] **Test thủ công F9/F10 thật (bấm phím)** ✅ — chạy `hotkey-test.jsh` (window 30s, bấm liên tục xen kẽ), listener fire: F9 = 44 lần, F10 = 43 lần, hoạt động cả khi cửa sổ khác đang active. **Lưu ý test**: output jshell hiển thị cho AI chứ KHÔNG realtime cho người dùng → khi test hotkey phải bấm liên tục cả window, đừng canh dòng "TEST BAT DAU"
+
+- [x] Commit: `feat: add global hotkey support (F9/F10)` ✅
 
 ---
 
@@ -219,6 +223,8 @@
 | 2026-08-06 | Review Phase 1 + fix #1 (makeLParam cast long), #5 (PrintWindow: PW_CLIENTONLY + PW_RENDERFULLCONTENT), #6 (perf getByteArray). Thêm `ManualTest.java` test Notepad qua EnumWindows. Pom: mainClass -> `${exec.mainClass}` (override bằng -Dexec.mainClass). PowerShell cần `--%` cho tham số -D. Test thủ công: capture PNG ✅, click gửi OK (caret không nhảy do Notepad dùng child EDIT control). |
 | 2026-08-08 | Hoàn thành Phase 2 (Core Models & Config). Thêm `model/ClickTarget.java`, `model/AppConfig.java`, `config/ConfigManager.java`. ClickTarget có helper `getTargetColor()/setTargetColor(Color)` bridge sang `java.awt.Color` để dùng trực tiếp cho `WindowCapture.isColorMatch`. ConfigManager: Gson pretty-print UTF-8, tự tạo default nếu thiếu, resolve path = thư mục JAR (fallback working dir), xử lý mềm file hỏng → trả default. Verify: `mvn clean compile` ✅ + smoke test jshell round-trip (load/save/target color) ✅. Chú ý: console Windows in tiếng Việt bị mojibake (codepage không UTF-8) — chỉ là hiển thị test, code/console thực tế khi chạy GUI sẽ OK. |
 | 2026-08-08 | Hoàn thành Phase 3 (Bot Engine). Thêm `service/AutoBotService.java`, `service/BotState.java` (enum), `service/BotListener.java` (interface). Worker = daemon Thread, state volatile, sleep interruptible (chunk 50ms) để stop/pause phản hồi nhanh. Capture 1 lần/vòng rồi reuse qua `isColorMatch(BufferedImage,...)`. `matchCount` = PROXY: đếm số vòng có ≥1 click (chưa có tín hiệu "kết thúc trận"; open question để refine). elapsedMs loại trừ thời gian pause (activeMs + runningSinceMs). Listener 4 callback, gọi trên worker thread (UI Phase 5 tự `invokeLater`). Verify: `mvn clean compile` ✅ + smoke test jshell start→pause→resume→stop với window giả (no-window path êm, không crash, state transitions `[RUNNING,PAUSED,RUNNING,STOPPED]`, elapsed trừ pause đúng = 1907ms cho 1200+600 run, matchCount=0) ✅. Lưu ý: JNA native-access WARNING (Java 21+ restricted method) là cảnh báo, không lỗi — nếu muốn tắt thì thêm JVM arg `--enable-native-access=ALL-UNNAMED`. |
+| 2026-08-08 | Hoàn thành Phase 4 (Global Hotkeys). Thêm `service/GlobalHotkeyService.java`, `service/HotkeyListener.java`. Dùng PeekMessage polling (PM_REMOVE, 10ms) thay vì GetMessage blocking → shutdown race-free (không cần PostThreadMessage + thread-id). Register/unregister/PeekMessage đều chạy trên cùng worker thread (bắt buộc cho thread hotkey hwnd=NULL). `stop()` interrupt + join(500) chờ unregister xong trong `finally`. KHÔNG sửa `Win32Api.java` (JNA User32 đã có sẵn PeekMessage/GetMessage/PostThreadMessage + WinUser.MSG; Win32Api đã có registerHotKey/unregisterHotKey + WM_HOTKEY/HOTKEY_ID_*/VK_F9/VK_F10 từ Phase 1). Verify: `mvn clean compile` ✅ + smoke test jshell (F9/F10 registered=true, worker loop OK, stop sạch + unregister + flags reset) ✅. **Còn 1 test thủ công F9/F10 thật (bấm phím → listener fire) chưa chạy** — cần Hieu chạy `hotkey-test.jsh` và bấm F9/F10 trong 4s. |
+| 2026-08-08 | Test thủ công F9/F10 thật ✅ PASS. Chạy `hotkey-test.jsh` qua jshell (classpath = `target/classes` + JNA jars từ `mvn dependency:build-classpath`), window 30s, bấm liên tục xen kẽ → F9 fire 44 lần, F10 fire 43 lần, chạy nền OK cả khi cửa sổ khác active. **Bài học test hotkey**: output jshell hiện cho AI chứ không realtime cho người dùng → phải bấm liên tục suốt window, đừng canh dòng log. Phase 4 hoàn tất + đã commit. Bước tiếp theo: Phase 5 (UI) — bắt đầu từ lát cắt 5a (App.java thật + MainFrame khung: Dashboard + Log + nút ▶/⏸/⏹ + nối AutoBotService & F9/F10) để có app chạy được và test end-to-end sớm. |
 
 ---
 
