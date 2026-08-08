@@ -98,23 +98,25 @@
 
 > Luồng xử lý chính – trái tim của ứng dụng.
 
-- [ ] **AutoBotService.java** (`service/`)
-  - [ ] Enum `BotState`: `IDLE`, `RUNNING`, `PAUSED`, `STOPPED`
-  - [ ] Chạy trên background thread (`ExecutorService` hoặc `Thread`)
-  - [ ] Vòng lặp chính:
-    - [ ] Kiểm tra `BotState` → nếu PAUSED thì sleep, nếu STOPPED thì thoát
-    - [ ] Gọi `Win32Api.findGameWindow()` → kiểm tra cửa sổ game còn sống không
-    - [ ] Chụp ảnh cửa sổ game bằng `WindowCapture`
-    - [ ] Duyệt từng `ClickTarget` đã enabled:
-      - [ ] Nếu `useColorCheck`: so sánh pixel color tại (x,y) với `targetColorRGB` ± `tolerance`
-      - [ ] Nếu khớp (hoặc không dùng color check): gửi `PostMessage` click
-    - [ ] Áp dụng delay + random jitter
-  - [ ] Đếm số trận đã xử lý (`matchCount`)
-  - [ ] Đếm thời gian chạy (`elapsedTime`)
-  - [ ] Callback/Listener để gửi log + cập nhật UI
-  - [ ] Các method điều khiển: `start()`, `pause()`, `resume()`, `stop()`
+- [x] **AutoBotService.java** (`service/`) + `BotState.java` + `BotListener.java`
+  - [x] Enum `BotState`: `IDLE`, `RUNNING`, `PAUSED`, `STOPPED` (file riêng trong `service/`)
+  - [x] Chạy trên background thread (dedicated daemon `Thread`, mỗi start() tạo thread mới)
+  - [x] Vòng lặp chính:
+    - [x] Kiểm tra `BotState` → nếu PAUSED thì sleep 100ms chunk, nếu STOPPED thì thoát
+    - [x] Gọi `Win32Api.findGameWindow()` → kiểm tra cửa sổ game còn sống không (không crash khi mất)
+    - [x] Chụp ảnh cửa sổ game bằng `WindowCapture` (1 lần/vòng, reuse cho mọi target)
+    - [x] Duyệt từng `ClickTarget` đã enabled:
+      - [x] Nếu `useColorCheck`: so sánh pixel color tại (x,y) với `targetColorRGB` ± `tolerance` (dùng `isColorMatch(BufferedImage,...)`)
+      - [x] Nếu khớp (hoặc không dùng color check): gửi `PostMessage` click (`Win32Api.postClick`)
+    - [x] Áp dụng delay + random jitter (per-target `delayMs ± jitterMs` + inter-cycle `loopDelayMs ± jitterMs`)
+  - [x] Đếm số trận đã xử lý (`matchCount`) — **proxy**: đếm số VÒNG có ít nhất 1 click (bot không có tín hiệu "kết thúc trận" rõ ràng; có thể refine sau)
+  - [x] Đếm thời gian chạy (`elapsedMs`) — loại trừ thời gian pause (activeMs tích lũy + runningSinceMs)
+  - [x] Callback/Listener (`BotListener`: `onLog`, `onStateChange`, `onStatsUpdate`, `onGameWindowStatus`) — gọi trên worker thread, UI Phase 5 tự `invokeLater`
+  - [x] Các method điều khiển: `start()`, `pause()`, `resume()`, `stop()` + `sleepInterruptible` (chunk 50ms, ngắt được)
 
-- [ ] Commit: `feat: add auto bot service engine`
+- [x] Verify: `mvn clean compile` ✅ + smoke test jshell (start→pause→resume→stop, no-window path êm, elapsed trừ pause đúng, matchCount=0) ✅
+
+- [x] Commit: `feat: add auto bot service engine` ✅
 
 ---
 
@@ -216,6 +218,7 @@
 | 2026-08-06 | Hieu sẽ tự code là chính, AI Agent hỗ trợ khi được yêu cầu |
 | 2026-08-06 | Review Phase 1 + fix #1 (makeLParam cast long), #5 (PrintWindow: PW_CLIENTONLY + PW_RENDERFULLCONTENT), #6 (perf getByteArray). Thêm `ManualTest.java` test Notepad qua EnumWindows. Pom: mainClass -> `${exec.mainClass}` (override bằng -Dexec.mainClass). PowerShell cần `--%` cho tham số -D. Test thủ công: capture PNG ✅, click gửi OK (caret không nhảy do Notepad dùng child EDIT control). |
 | 2026-08-08 | Hoàn thành Phase 2 (Core Models & Config). Thêm `model/ClickTarget.java`, `model/AppConfig.java`, `config/ConfigManager.java`. ClickTarget có helper `getTargetColor()/setTargetColor(Color)` bridge sang `java.awt.Color` để dùng trực tiếp cho `WindowCapture.isColorMatch`. ConfigManager: Gson pretty-print UTF-8, tự tạo default nếu thiếu, resolve path = thư mục JAR (fallback working dir), xử lý mềm file hỏng → trả default. Verify: `mvn clean compile` ✅ + smoke test jshell round-trip (load/save/target color) ✅. Chú ý: console Windows in tiếng Việt bị mojibake (codepage không UTF-8) — chỉ là hiển thị test, code/console thực tế khi chạy GUI sẽ OK. |
+| 2026-08-08 | Hoàn thành Phase 3 (Bot Engine). Thêm `service/AutoBotService.java`, `service/BotState.java` (enum), `service/BotListener.java` (interface). Worker = daemon Thread, state volatile, sleep interruptible (chunk 50ms) để stop/pause phản hồi nhanh. Capture 1 lần/vòng rồi reuse qua `isColorMatch(BufferedImage,...)`. `matchCount` = PROXY: đếm số vòng có ≥1 click (chưa có tín hiệu "kết thúc trận"; open question để refine). elapsedMs loại trừ thời gian pause (activeMs + runningSinceMs). Listener 4 callback, gọi trên worker thread (UI Phase 5 tự `invokeLater`). Verify: `mvn clean compile` ✅ + smoke test jshell start→pause→resume→stop với window giả (no-window path êm, không crash, state transitions `[RUNNING,PAUSED,RUNNING,STOPPED]`, elapsed trừ pause đúng = 1907ms cho 1200+600 run, matchCount=0) ✅. Lưu ý: JNA native-access WARNING (Java 21+ restricted method) là cảnh báo, không lỗi — nếu muốn tắt thì thêm JVM arg `--enable-native-access=ALL-UNNAMED`. |
 
 ---
 
