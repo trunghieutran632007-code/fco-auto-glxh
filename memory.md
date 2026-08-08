@@ -71,22 +71,26 @@
 
 > Định nghĩa dữ liệu và quản lý cấu hình.
 
-- [ ] **ClickTarget.java** (`model/`)
-  - [ ] Các trường: `name`, `x`, `y`, `targetColorRGB` (int[3]), `colorTolerance`, `delayMs`, `enabled`
-  - [ ] Constructor, getters, setters
-  - [ ] Method `toString()` cho debug/log
+- [x] **ClickTarget.java** (`model/`)
+  - [x] Các trường: `name`, `x`, `y`, `targetColorRGB` (int[3]), `colorTolerance`, `delayMs`, `enabled`
+  - [x] Constructor, getters, setters
+  - [x] Method `toString()` cho debug/log
+  - [x] Helper: `getTargetColor()` / `setTargetColor(Color)` — bridge sang `java.awt.Color` cho `WindowCapture.isColorMatch`
 
-- [ ] **AppConfig.java** (`model/`)
-  - [ ] Các trường: `gameWindowTitle`, `targets` (List<ClickTarget>), `loopDelayMs`, `jitterMs`, `useColorCheck`, `maxMatches`
-  - [ ] Giá trị mặc định hợp lý (gameWindowTitle = "FC ONLINE", loopDelayMs = 3000, jitterMs = 500,...)
+- [x] **AppConfig.java** (`model/`)
+  - [x] Các trường: `gameWindowTitle`, `targets` (List<ClickTarget>), `loopDelayMs`, `jitterMs`, `useColorCheck`, `maxMatches`
+  - [x] Giá trị mặc định hợp lý (gameWindowTitle = "FC ONLINE", loopDelayMs = 3000, jitterMs = 500, useColorCheck = true, maxMatches = 0 = vô hạn)
 
-- [ ] **ConfigManager.java** (`config/`)
-  - [ ] `load()` → đọc `config.json` bằng Gson, trả về `AppConfig`
-  - [ ] `save(AppConfig)` → ghi ra `config.json`
-  - [ ] Tự tạo `config.json` mặc định nếu file chưa tồn tại
-  - [ ] Xác định đường dẫn config: cùng thư mục với file JAR
+- [x] **ConfigManager.java** (`config/`)
+  - [x] `load()` → đọc `config.json` bằng Gson, trả về `AppConfig`
+  - [x] `save(AppConfig)` → ghi ra `config.json` (pretty-print, UTF-8)
+  - [x] Tự tạo `config.json` mặc định nếu file chưa tồn tại
+  - [x] Xác định đường dẫn config: cùng thư mục với file JAR (fallback working dir)
+  - [x] Xử lý mềm: file rỗng/hỏng → trả default config (không crash)
 
-- [ ] Commit: `feat: add models and config manager`
+- [x] Verify: `mvn clean compile` ✅ BUILD SUCCESS + smoke test jshell (round-trip load/save + helper Color) ✅
+
+- [x] Commit: `feat: add models and config manager` ✅
 
 ---
 
@@ -211,6 +215,7 @@
 | 2026-08-06 | Repo tạo tại `C:\Users\Hieu\Documents\GitHub\fco-auto-glxh` |
 | 2026-08-06 | Hieu sẽ tự code là chính, AI Agent hỗ trợ khi được yêu cầu |
 | 2026-08-06 | Review Phase 1 + fix #1 (makeLParam cast long), #5 (PrintWindow: PW_CLIENTONLY + PW_RENDERFULLCONTENT), #6 (perf getByteArray). Thêm `ManualTest.java` test Notepad qua EnumWindows. Pom: mainClass -> `${exec.mainClass}` (override bằng -Dexec.mainClass). PowerShell cần `--%` cho tham số -D. Test thủ công: capture PNG ✅, click gửi OK (caret không nhảy do Notepad dùng child EDIT control). |
+| 2026-08-08 | Hoàn thành Phase 2 (Core Models & Config). Thêm `model/ClickTarget.java`, `model/AppConfig.java`, `config/ConfigManager.java`. ClickTarget có helper `getTargetColor()/setTargetColor(Color)` bridge sang `java.awt.Color` để dùng trực tiếp cho `WindowCapture.isColorMatch`. ConfigManager: Gson pretty-print UTF-8, tự tạo default nếu thiếu, resolve path = thư mục JAR (fallback working dir), xử lý mềm file hỏng → trả default. Verify: `mvn clean compile` ✅ + smoke test jshell round-trip (load/save/target color) ✅. Chú ý: console Windows in tiếng Việt bị mojibake (codepage không UTF-8) — chỉ là hiển thị test, code/console thực tế khi chạy GUI sẽ OK. |
 
 ---
 
