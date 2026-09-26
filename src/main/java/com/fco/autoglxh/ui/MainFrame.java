@@ -18,6 +18,8 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
+import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
@@ -82,6 +84,10 @@ public class MainFrame extends JFrame implements BotListener, HotkeyListener {
     private final JButton stopBtn = new JButton("⏹ Dừng");
     private final JTextArea logArea = new JTextArea();
 
+    // Panels 5b (khởi tạo trong constructor, trước buildUi)
+    private TargetsPanel targetsPanel;
+    private SettingsPanel settingsPanel;
+
     // Đồng hồ cập nhật elapsed/matchCount mỗi giây (chạy trên EDT)
     private final Timer statsTimer = new Timer(1000, e -> refreshStats());
 
@@ -94,6 +100,11 @@ public class MainFrame extends JFrame implements BotListener, HotkeyListener {
         this.configManager = configManager;
         this.botService = botService;
         this.hotkeyService = hotkeyService;
+
+        // Panels 5b — tạo trước buildUi() vì buildUi() nhúng chúng vào tab.
+        // saveAll = commit settings + ghi config.json; appendLog để 2 panel ghi nhật ký.
+        this.settingsPanel = new SettingsPanel(config, this::saveAll, this::appendLog);
+        this.targetsPanel = new TargetsPanel(config, this::saveAll, this::appendLog);
 
         buildUi();
         wireActions();
@@ -109,6 +120,7 @@ public class MainFrame extends JFrame implements BotListener, HotkeyListener {
 
         appendLog("UI sẵn sàng. Phím tắt: F9 = Bắt đầu/Tạm dừng, F10 = Dừng.");
         appendLog("Cửa sổ game đang tìm: \"" + config.getGameWindowTitle() + "\".");
+        appendLog("Đã tải " + config.getTargets().size() + " mục tiêu từ cấu hình.");
 
         statsTimer.start();
     }
@@ -117,14 +129,14 @@ public class MainFrame extends JFrame implements BotListener, HotkeyListener {
 
     private void buildUi() {
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE); // tự dọn trong windowClosing
-        setSize(760, 560);
-        setMinimumSize(new Dimension(680, 480));
+        setSize(820, 660);
+        setMinimumSize(new Dimension(720, 560));
         setLocationRelativeTo(null);
 
         JPanel content = new JPanel(new BorderLayout(10, 10));
         content.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
         content.add(buildDashboard(), BorderLayout.NORTH);
-        content.add(buildLogPanel(), BorderLayout.CENTER);
+        content.add(buildCenter(), BorderLayout.CENTER);
         content.add(buildStatusBar(), BorderLayout.SOUTH);
         setContentPane(content);
 
@@ -190,6 +202,27 @@ public class MainFrame extends JFrame implements BotListener, HotkeyListener {
         block.add(Box.createVerticalStrut(2));
         block.add(valueLabel);
         return block;
+    }
+
+    private JSplitPane buildCenter() {
+        JTabbedPane tabs = new JTabbedPane();
+        tabs.addTab("Mục tiêu (Targets)", targetsPanel);
+        tabs.addTab("Cài đặt", settingsPanel);
+
+        JSplitPane split = new JSplitPane(JSplitPane.VERTICAL_SPLIT, tabs, buildLogPanel());
+        split.setResizeWeight(0.62);
+        split.setBorder(null);
+        return split;
+    }
+
+    /**
+     * Nguồn persist duy nhất: commit settings (field → config) rồi ghi config.json.
+     * Targets đã được sửa trực tiếp trên {@code config.getTargets()}; gọi trước khi
+     * lưu để settings mới nhất không bị ghi đè bằng dữ liệu cũ.
+     */
+    private void saveAll() {
+        settingsPanel.commitToConfig();
+        configManager.save(config);
     }
 
     private JPanel buildLogPanel() {

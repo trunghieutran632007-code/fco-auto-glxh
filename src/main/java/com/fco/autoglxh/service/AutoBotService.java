@@ -7,6 +7,7 @@ import com.fco.autoglxh.native_api.WindowCapture;
 import com.sun.jna.platform.win32.WinDef.HWND;
 
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -219,9 +220,10 @@ public class AutoBotService {
             return;
         }
 
-        // 4) Duyệt các target đã enabled
+        // 4) Duyệt các target đã enabled (snapshot để tránh ConcurrentModificationException
+        //    khi UI thêm/xóa target giữa lúc bot đang duyệt)
         boolean clickedAny = false;
-        for (ClickTarget t : config.getTargets()) {
+        for (ClickTarget t : new ArrayList<>(config.getTargets())) {
             if (state != BotState.RUNNING) {
                 return; // bị pause/stop giữa chừng → bỏ dở vòng
             }
